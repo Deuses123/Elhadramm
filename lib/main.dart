@@ -6,10 +6,11 @@ import 'package:chatter/pages/MainPage.dart';
 import 'package:chatter/screens/home_screens.dart';
 import 'package:chatter/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-void main() {
+Future<void> main() async {
   runApp(MyApp());
 }
 

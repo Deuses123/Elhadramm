@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "700467660471",
+    "project_id": "project-89130",
+    "storage_bucket": "project-89130.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:700467660471:android:b3843eb167bc5751f02f32",
+        "android_client_info": {
+          "package_name": "com.kalibekov.unit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "700467660471-6iu2okvpfoo8ju5j3pahuv0dmrgsp82r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsZA9-Hn-Bn3ybagoDwc-e5fGToTT6ww8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "700467660471-6iu2okvpfoo8ju5j3pahuv0dmrgsp82r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
