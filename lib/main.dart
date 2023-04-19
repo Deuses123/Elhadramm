@@ -62,8 +62,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    if (hasAccessToken) {
-      // если у нас есть токен, открываем страницу Pages
+
       return MaterialApp(
         theme: AppTheme.dark(),
         title: 'Elhagram',
@@ -73,20 +72,18 @@ class _MyAppState extends State<MyApp> {
         ),
       );
     }
-
-
-    else {
-      // если у нас нет токена, открываем страницу входа
-      return MaterialApp(
-        title: 'Elhagram',
-        theme: AppTheme.dark(),
-        themeMode: ThemeMode.dark,
-        routes: {
-          '/Login': (context) => LoginPage(loginSuccess: loginSuccess),
-          '/Register': (context) => RegisterPage(loginSuccess: loginSuccess),
-        },
-        home: const MainPage(),
-      );
-    }
-  }
 }
+
+
+// else {
+// // если у нас нет токена, открываем страницу входа
+// return MaterialApp(
+// title: 'Elhagram',
+// theme: AppTheme.dark(),
+// themeMode: ThemeMode.dark,
+// routes: {
+// '/Login': (context) => LoginPage(loginSuccess: loginSuccess),
+// '/Register': (context) => RegisterPage(loginSuccess: loginSuccess),
+// },
+// home: const MainPage(),
+// );
