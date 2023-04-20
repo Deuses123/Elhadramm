@@ -19,6 +19,16 @@ class ScheduleEvent {
     required this.endTime,
   });
 
+  Map<String, dynamic> toJson() => {
+    'subjectType': subjectType.toJson(),
+    'auditorium': auditorium.toJson(),
+    'campus': campus.toJson(),
+    'subjectName': subjectName,
+    'employeeName': employeeName,
+    'beginTime': beginTime.millisecondsSinceEpoch ~/ 1000,
+    'endTime': endTime.millisecondsSinceEpoch ~/ 1000,
+  };
+
   factory ScheduleEvent.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic> subject = json['subject'];
     return ScheduleEvent(
@@ -42,7 +52,9 @@ class SubjectType {
   final String name;
 
   SubjectType({required this.name});
-
+  Map<String, dynamic> toJson() => {
+    'name': name,
+  };
   factory SubjectType.fromJson(Map<String, dynamic> json) {
     return SubjectType(name: json['name']);
   }
@@ -56,6 +68,9 @@ class Auditorium {
   factory Auditorium.fromJson(Map<String, dynamic> json) {
     return Auditorium(audNum: json['aud_num']);
   }
+  Map<String, dynamic> toJson() => {
+    'aud_num': audNum,
+  };
 }
 
 class Campus {
@@ -66,4 +81,7 @@ class Campus {
   factory Campus.fromJson(Map<String, dynamic> json) {
     return Campus(num: json['num']);
   }
+  Map<String, dynamic> toJson() => {
+    'num': num,
+  };
 }
