@@ -1,15 +1,16 @@
+import 'package:chatter/pages/SU/SheduleEvent.dart';
 import 'package:flutter/material.dart';
 
-class WeekPage extends StatefulWidget {
-  const WeekPage({Key? key, required this.week}) : super(key: key);
+class Event extends StatefulWidget {
+  const Event({Key? key, required this.subject}) : super(key: key);
+  final ScheduleEvent subject;
 
-  final String week;
 
   @override
-  _WeekPageState createState() => _WeekPageState();
+  _EventState createState() => _EventState();
 }
 
-class _WeekPageState extends State<WeekPage> {
+class _EventState extends State<Event> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,13 +34,13 @@ class _WeekPageState extends State<WeekPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Тип урока: Лекция'),
-                Text('Номер аудитории: 101'),
-                Text('Кампус: А'),
-                Text('Название предмета: Математика'),
-                Text('Преподаватель: Иванов Иван Иванович'),
-                Text('Начало урока: 09:00'),
-                Text('Конец урока: 10:30'),
+                Text('Тип урока: ${widget.subject.subjectType}'),
+                Text('Номер аудитории: ${widget.subject.auditorium.audNum}'),
+                Text('Кампус: ${widget.subject.campus.num}'),
+                Text('Название предмета: ${widget.subject.subjectName}'),
+                Text('Преподаватель: ${widget.subject.employeeName}'),
+                Text('Начало урока: ${widget.subject.beginTime}'),
+                Text('Конец урока: ${widget.subject.endTime}'),
               ],
             ), ))],
         )

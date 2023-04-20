@@ -142,5 +142,4 @@ class _MessagesPageState extends State<MessagesPage> {
       );
     }
   }
-
 }
