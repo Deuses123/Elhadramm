@@ -7,6 +7,7 @@ import 'package:chatter/screens/home_screens.dart';
 import 'package:chatter/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -26,6 +27,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool hasAccessToken = false;
   ServerConfig serverConfig = ServerConfig();
+
   Future<void> checkToken() async {
     const storage = FlutterSecureStorage();
     final String? token = await storage.read(key: 'accessToken');
@@ -57,12 +59,15 @@ class _MyAppState extends State<MyApp> {
       hasAccessToken = state == 1 ? true : false;
     });
 
-    runApp(MyApp());
+    runApp(
+        ProviderScope(child:
+        MyApp()))
+    ;
   }
 
   @override
   Widget build(BuildContext context) {
-
+    if (hasAccessToken) {
       return MaterialApp(
         theme: AppTheme.dark(),
         title: 'Elhagram',
@@ -72,18 +77,17 @@ class _MyAppState extends State<MyApp> {
         ),
       );
     }
+    else {
+      return MaterialApp(
+        title: 'Elhagram',
+        theme: AppTheme.dark(),
+        themeMode: ThemeMode.dark,
+        routes: {
+          '/Login': (context) => LoginPage(loginSuccess: loginSuccess),
+          '/Register': (context) => RegisterPage(loginSuccess: loginSuccess),
+        },
+        home: const MainPage(),
+      );
+    }
+  }
 }
-
-
-// else {
-// // если у нас нет токена, открываем страницу входа
-// return MaterialApp(
-// title: 'Elhagram',
-// theme: AppTheme.dark(),
-// themeMode: ThemeMode.dark,
-// routes: {
-// '/Login': (context) => LoginPage(loginSuccess: loginSuccess),
-// '/Register': (context) => RegisterPage(loginSuccess: loginSuccess),
-// },
-// home: const MainPage(),
-// );

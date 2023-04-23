@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-
 import '../Server/ServerConfig.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -27,6 +26,7 @@ class _ProfilePageState extends State<ProfilePage> {
   TextEditingController lastNameController = TextEditingController();
   late User user = User(username: '', profilePhoto: '');
   var data;
+
   Future<void> init() async {
     var response = await http.get(Uri.parse("${ServerConfig.ip}/api/users/me"), headers: <String, String> {
       'Authorization': 'Bearer ${await storage.read(key: 'accessToken')}'
@@ -45,6 +45,7 @@ class _ProfilePageState extends State<ProfilePage> {
       print('Failed to get user data. Error: ${response.reasonPhrase}');
     }
   }
+
   @override
   void initState() {
     init();

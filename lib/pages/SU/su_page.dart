@@ -1,8 +1,7 @@
 import 'dart:convert';
 
-import 'package:chatter/pages/SU/SheduleEvent.dart';
+import 'package:chatter/pages/SU/Event.dart';
 import 'package:chatter/pages/SU/WeekDay.dart';
-import 'package:chatter/pages/SU/apta/Event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -17,11 +16,13 @@ class SuPage extends StatefulWidget {
 
 class _SuPageState extends State<SuPage> with SingleTickerProviderStateMixin{
   late TabController _tabController;
-  List<WeekDay> days = [];
+  List<Schedule> schedules = [];
+
+
   @override
   void initState() {
     super.initState();
-    checkSubjects();
+    reloadSubjects();
     _tabController = TabController(length: 6, vsync: this);
   }
 
@@ -35,433 +36,235 @@ class _SuPageState extends State<SuPage> with SingleTickerProviderStateMixin{
     return dateTime.subtract(Duration(days: difference));
   }
 
+
   void reloadSubjects() async {
-    var token = await storage.read(key: 'su_token');
-    if(token != null){
-      var begin = getLastMonday(getLastMonday(DateTime.now()));
-      var UnixBegin = dateTimeToUnix(begin);
-
-      DateTime end = DateTime(begin.year, begin.month, begin.day+6);
-      var UnixEnd = dateTimeToUnix(end);
-
-
-      var res = await http.get(
-          Uri.parse('https://api.satbayev.hero.study/v1/schedule/list?beginTime=$UnixBegin&endTime=$UnixEnd&lang=ru546644'),
-          headers: <String, String> {
-            'Authorization': 'Bearer $token'
-          }
-      );
-      print('reload');
-      var events = await jsonDecode(res.body);
-      var size = events.length;
-
-      for(int i = 0; i < size; i++) {
-        var eventSize = await events[i]['events'].length;
-        var day = WeekDay(subjects: []);
-        for (int j = 0; j < eventSize; j++) {
-          if(events[i]['events'].length>0) {
-            day.subjects.add(ScheduleEvent.fromJson(events[i]['events'][j]));
-          }
-        }
-        days.add(day);
-      }
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('week_days', res.body);
-      setState(() {
-
-      });
-    }
-    else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Вы не авторизованы в портале'),
-          action: SnackBarAction(
-            label: 'Авторизоваться',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SUAuthorityPage()),
-              );
-            },
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> checkSubjects() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? jsonString = prefs.getString('week_days');
-    print('check');
-    print(jsonString);
-    List<WeekDay> tempDays = [];
+    final String? preJson = prefs.getString('week_days');
+    if(preJson == null) {
+      var token = await storage.read(key: 'su_token');
+      if(token != null){
+        var begin = getLastMonday(getLastMonday(DateTime.now()));
+        var UnixBegin = dateTimeToUnix(begin);
 
-    if(jsonString != null) {
-      var events = await jsonDecode(jsonString);
-      var size = events.length;
-      print('size: $size');
+        DateTime end = DateTime(begin.year, begin.month, begin.day+6);
+        var UnixEnd = dateTimeToUnix(end);
 
-      for(int i = 0; i < size; i++) {
-        var eventSize = await events[i]['events'].length;
-        var day = WeekDay(subjects: []);
-        for (int j = 0; j < eventSize; j++) {
-          if(events[i]['events'].length>0) {
-            day.subjects.add(ScheduleEvent.fromJson(events[i]['events'][j]));
+
+        var res = await http.get(
+            Uri.parse('https://api.satbayev.hero.study/v1/schedule/list?beginTime=$UnixBegin&endTime=$UnixEnd&lang=ru546644'),
+            headers: <String, String> {
+              'Authorization': 'Bearer $token'
+            }
+        );
+
+        if (res.statusCode == 200) {
+
+
+          List<dynamic> scheduleJson = jsonDecode(res.body);
+
+          for (var scheduleData in scheduleJson) {
+            Schedule schedule = Schedule.fromJson(scheduleData);
+            schedules.add(schedule);
           }
-        }
-        tempDays.add(day);
-      }
-      setState(() {
-        days = tempDays;
-      });
 
+
+        } else {
+          throw Exception('Failed to fetch schedules');
+        }
+
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('week_days', res.body);
+        setState(() {
+
+        });
+      }
+      else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Вы не авторизованы в портале'),
+            action: SnackBarAction(
+              label: 'Авторизоваться',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SUAuthorityPage()),
+                );
+              },
+            ),
+          ),
+        );
+      }
     }
     else {
-      setState(() {
-        reloadSubjects();
-      });
+      List<dynamic> scheduleJson = jsonDecode(preJson);
+      for (var scheduleData in scheduleJson) {
+        Schedule schedule = Schedule.fromJson(scheduleData);
+        schedules.add(schedule);
+      }
+      setState(() {});
     }
-
   }
-
 
   @override
   void dispose() {
     _tabController.dispose();
-    // checkSubjects();
+    schedules = [];
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return days.length != 0 ? Scaffold(
-
-        appBar: AppBar(
-          title: Text('Расписание'),
-          bottom: TabBar(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Расписание'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'Понедельник'),
+            Tab(text: 'Вторник'),
+            Tab(text: 'Среда'),
+            Tab(text: 'Четверг'),
+            Tab(text: 'Пятница'),
+            Tab(text: 'Суббота'),
+          ],
+        ),
+      ),
+      body: schedules.length != 0 ? Stack(
+        children: [
+          TabBarView(
             controller: _tabController,
-            tabs: [
-              Tab(text: 'Понедельник'),
-              Tab(text: 'Вторник'),
-              Tab(text: 'Среда'),
-              Tab(text: 'Четверг'),
-              Tab(text: 'Пятница'),
-              Tab(text: 'Суббота'),
+            children: [
+              schedules.length > 0 ? buildListView(0) : Container(),
+              schedules.length > 1 ? buildListView(1) : Container(),
+              schedules.length > 2 ? buildListView(2) : Container(),
+              schedules.length > 3 ? buildListView(3) : Container(),
+              schedules.length > 4 ? buildListView(4) : Container(),
+              schedules.length > 5 ? buildListView(5) : Container(),
             ],
           ),
-        ),
-        body: days.length != 0 ? Stack(
-            children: [
+          Positioned(
+            bottom: 16.0,
+            right: 16.0,
+            child: FloatingActionButton(
+              onPressed: () {
+                reloadSubjects();
+              },
+              child: Icon(Icons.refresh),
+              backgroundColor: Color(0x234952FF), // Цвет фона кнопки
+            ),
+          ),
+        ],
+      ) : FloatingActionButton(
+        onPressed: () {
+          reloadSubjects();
+        },
+        child: Icon(Icons.refresh),
+        backgroundColor: Colors.white12, // Цвет фона кнопки
+      ),
+    );
+  }
 
-              TabBarView(
-                controller: _tabController,
-                children: [
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: days[0].subjects.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        children: [Row(
-                          children: [
-                            Expanded(child: Container(
-                              margin: EdgeInsets.only(left: 20, right: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(10.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    spreadRadius: 3,
-                                    blurRadius: 7,
-                                    offset: Offset(0, 3), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child:
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Тип урока: ${days[0].subjects[index].subjectType.name}', style: TextStyle(color: Colors.black54)),
-                                  Text('Номер аудитории: ${days[0].subjects[index].auditorium.audNum}', style: TextStyle(color: Colors.black54)),
-                                  Text('Кампус: ${days[0].subjects[index].campus.num}', style: TextStyle(color: Colors.black54)),
-                                  Text('Название предмета: ${days[0].subjects[index].subjectName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Преподаватель: ${days[0].subjects[index].employeeName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Начало урока: ${days[0].subjects[index].beginTime.hour}:${days[0].subjects[index].beginTime.minute}' ,style: TextStyle(color: Colors.black54),),
-                                  Text('Конец урока: ${days[0].subjects[index].endTime.hour}:${days[0].subjects[index].endTime.minute}', style: TextStyle(color: Colors.black54)),
-                                ],
-                              ), )),
-
-                          ],
-                        ),
-                          SizedBox(height: 30,),
-                        ],
-                      );
-                    },
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: days[1].subjects.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        children: [Row(
-                          children: [
-                            Expanded(child: Container(
-                              margin: EdgeInsets.only(left: 20, right: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(10.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    spreadRadius: 3,
-                                    blurRadius: 7,
-                                    offset: Offset(0, 3), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child:
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Тип урока: ${days[1].subjects[index].subjectType.name}', style: TextStyle(color: Colors.black54)),
-                                  Text('Номер аудитории: ${days[1].subjects[index].auditorium.audNum}', style: TextStyle(color: Colors.black54)),
-                                  Text('Кампус: ${days[1].subjects[index].campus.num}', style: TextStyle(color: Colors.black54)),
-                                  Text('Название предмета: ${days[1].subjects[index].subjectName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Преподаватель: ${days[1].subjects[index].employeeName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Начало урока: ${days[1].subjects[index].beginTime.hour}:${days[1].subjects[index].beginTime.minute}' ,style: TextStyle(color: Colors.black54),),
-                                  Text('Конец урока: ${days[1].subjects[index].endTime.hour}:${days[1].subjects[index].endTime.minute}', style: TextStyle(color: Colors.black54)),
-                                ],
-                              ), )),
-
-                          ],
-                        ),
-                          SizedBox(height: 30,),
-                        ],
-                      );
-                    },
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: days[2].subjects.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        children: [Row(
-                          children: [
-                            Expanded(child: Container(
-                              margin: EdgeInsets.only(left: 20, right: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(10.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    spreadRadius: 3,
-                                    blurRadius: 7,
-                                    offset: Offset(0, 3), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child:
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Тип урока: ${days[2].subjects[index].subjectType.name}', style: TextStyle(color: Colors.black54)),
-                                  Text('Номер аудитории: ${days[2].subjects[index].auditorium.audNum}', style: TextStyle(color: Colors.black54)),
-                                  Text('Кампус: ${days[2].subjects[index].campus.num}', style: TextStyle(color: Colors.black54)),
-                                  Text('Название предмета: ${days[2].subjects[index].subjectName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Преподаватель: ${days[2].subjects[index].employeeName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Начало урока: ${days[2].subjects[index].beginTime.hour}:${days[2].subjects[index].beginTime.minute}' ,style: TextStyle(color: Colors.black54),),
-                                  Text('Конец урока: ${days[2].subjects[index].endTime.hour}:${days[2].subjects[index].endTime.minute}', style: TextStyle(color: Colors.black54)),
-                                ],
-                              ), )),
-
-                          ],
-                        ),
-                          SizedBox(height: 30,),
-                        ],
-                      );
-                    },
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: days[3].subjects.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        children: [Row(
-                          children: [
-                            Expanded(child: Container(
-                              margin: EdgeInsets.only(left: 20, right: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(10.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    spreadRadius: 3,
-                                    blurRadius: 7,
-                                    offset: Offset(0, 3), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child:
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Тип урока: ${days[3].subjects[index].subjectType.name}', style: TextStyle(color: Colors.black54)),
-                                  Text('Номер аудитории: ${days[3].subjects[index].auditorium.audNum}', style: TextStyle(color: Colors.black54)),
-                                  Text('Кампус: ${days[3].subjects[index].campus.num}', style: TextStyle(color: Colors.black54)),
-                                  Text('Название предмета: ${days[3].subjects[index].subjectName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Преподаватель: ${days[3].subjects[index].employeeName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Начало урока: ${days[3].subjects[index].beginTime.hour}:${days[3].subjects[index].beginTime.minute}' ,style: TextStyle(color: Colors.black54),),
-                                  Text('Конец урока: ${days[3].subjects[index].endTime.hour}:${days[3].subjects[index].endTime.minute}', style: TextStyle(color: Colors.black54)),
-                                ],
-                              ), )),
-
-                          ],
-                        ),
-                          SizedBox(height: 30,),
-                        ],
-                      );
-                    },
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: days[4].subjects.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        children: [Row(
-                          children: [
-                            Expanded(child: Container(
-                              margin: EdgeInsets.only(left: 20, right: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(10.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    spreadRadius: 3,
-                                    blurRadius: 7,
-                                    offset: Offset(0, 3), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child:
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Тип урока: ${days[4].subjects[index].subjectType.name}', style: TextStyle(color: Colors.black54)),
-                                  Text('Номер аудитории: ${days[4].subjects[index].auditorium.audNum}', style: TextStyle(color: Colors.black54)),
-                                  Text('Кампус: ${days[4].subjects[index].campus.num}', style: TextStyle(color: Colors.black54)),
-                                  Text('Название предмета: ${days[4].subjects[index].subjectName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Преподаватель: ${days[4].subjects[index].employeeName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Начало урока: ${days[4].subjects[index].beginTime.hour}:${days[4].subjects[index].beginTime.minute}' ,style: TextStyle(color: Colors.black54),),
-                                  Text('Конец урока: ${days[4].subjects[index].endTime.hour}:${days[4].subjects[index].endTime.minute}', style: TextStyle(color: Colors.black54)),
-                                ],
-                              ), )),
-
-                          ],
-                        ),
-                          SizedBox(height: 30,),
-                        ],
-                      );
-                    },
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: days[5].subjects.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        children: [Row(
-                          children: [
-                            Expanded(child: Container(
-                              margin: EdgeInsets.only(left: 20, right: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(10.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    spreadRadius: 3,
-                                    blurRadius: 7,
-                                    offset: Offset(0, 3), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child:
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Тип урока: ${days[5].subjects[index].subjectType.name}', style: TextStyle(color: Colors.black54)),
-                                  Text('Номер аудитории: ${days[5].subjects[index].auditorium.audNum}', style: TextStyle(color: Colors.black54)),
-                                  Text('Кампус: ${days[5].subjects[index].campus.num}', style: TextStyle(color: Colors.black54)),
-                                  Text('Название предмета: ${days[5].subjects[index].subjectName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Преподаватель: ${days[5].subjects[index].employeeName}', style: TextStyle(color: Colors.black54),),
-                                  Text('Начало урока: ${days[5].subjects[index].beginTime.hour}:${days[5].subjects[index].beginTime.minute}' ,style: TextStyle(color: Colors.black54),),
-                                  Text('Конец урока: ${days[5].subjects[index].endTime.hour}:${days[5].subjects[index].endTime.minute}', style: TextStyle(color: Colors.black54)),
-                                ],
-                              ), )),
-
-                          ],
-                        ),
-                          SizedBox(height: 30,),
-                        ],
-                      );
-
-                    },
-                  )
-                ],
+  Widget buildListView(int mainIndex) {
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: schedules[mainIndex].events.length,
+      itemBuilder: (BuildContext context, int index) {
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          padding: EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(10.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                spreadRadius: 3,
+                blurRadius: 20,
+                offset: Offset(0, 3),
               ),
-              Positioned(
-                bottom: 16.0,
-                right: 16.0,
-                child: FloatingActionButton(
-                  onPressed: () {
-                    checkSubjects();
-                  },
-                  child: Icon(Icons.refresh),
-                  backgroundColor: Color(0x234952FF), // Цвет фона кнопки
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  "${DateTime.fromMillisecondsSinceEpoch(int.parse(schedules[mainIndex].events[index].beginTime) * 1000).toString().substring(11, 16)} - ${DateTime.fromMillisecondsSinceEpoch(int.parse(schedules[mainIndex].events[index].endTime) * 1000).toString().substring(11, 16)}",
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-            ]
-        ) :  FloatingActionButton(
-          onPressed: () {
-            checkSubjects();
-          },
-          child: Icon(Icons.refresh),
-          backgroundColor: Colors.white12, // Цвет фона кнопки
-        )
-    ) : Container();
+              SizedBox(height: 10),
+              Text(
+                schedules[mainIndex].events[index].subject.name.toUpperCase(),
+                style: TextStyle(
+                  color: Color(0xFF234952),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Text(
+                    "Тип занятия: ",
+                    style: TextStyle(
+                      color: Colors.grey[800],
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    "${schedules[mainIndex].events[index].subjectType.name}",
+                    style: TextStyle(
+                      color: Colors.purple,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Row(
+                  children: [
+                    Text(
+                      "Аудитория: ",
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      '${schedules[mainIndex].events[index].auditorium.audNum}',
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.teal
+                      ),
+                    ),
+                  ]
+              ),
+              Text(
+                '${schedules[mainIndex].events[index].auditorium.campus.name}',
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.pinkAccent
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                "Преподаватель:  ${schedules[mainIndex].events[index].employee.person.surNameRu} ${schedules[mainIndex].events[index].employee.person.lastNameRu} ${schedules[mainIndex].events[index].employee.person.firstNameRu}",
+                style: TextStyle(
+                  color: Colors.grey[800],
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
-
-// class _DayOfWeekButton extends StatelessWidget {
-//   final String dayOfWeek;
-//
-//   const _DayOfWeekButton({Key? key, required this.dayOfWeek}) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return ElevatedButton(
-//       onPressed: () {
-//         Navigator.of(context).push(
-//           MaterialPageRoute(
-//             builder: (context) => Event(week: dayOfWeek, subject: days[0][0],),
-//           ),
-//         );
-//       },
-//       child: Text(
-//         dayOfWeek,
-//         style: TextStyle(
-//           color: Colors.white,
-//           fontWeight: FontWeight.bold,
-//         ),
-//       ),
-//     );
-//   }
-// }

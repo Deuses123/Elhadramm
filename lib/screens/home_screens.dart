@@ -23,7 +23,7 @@ class HomeScreen extends StatelessWidget {
   late final pages = [
     MessagesPage(),
     NotificationsPage(),
-    CallsPage(),
+    // CallPage(),
     ContactsPage(),
     ProfilePage(loginSuccess: loginSuccess),
     SuPage(),
@@ -32,7 +32,7 @@ class HomeScreen extends StatelessWidget {
   final pageTitle = const [
     'MessagesPage',
     'NotificationPage',
-    'CallsPage',
+    // 'CallsPage',
     'ContactsPage',
     'Profile',
     'SU'
@@ -117,40 +117,40 @@ class _BottomNavigationBarState extends State<_BottomNavigationBar> {
             isSelected: (selectedIndex == 1),
             onTap: handleItemSelected,
           ),
+          // _NavigationBarItem(
+          //   index: 2,
+          //   label: 'Calls',
+          //   icon: CupertinoIcons.phone_fill,
+          //   isSelected: (selectedIndex == 2),
+          //   onTap: handleItemSelected,
+          // ),
           _NavigationBarItem(
             index: 2,
-            label: 'Calls',
-            icon: CupertinoIcons.phone_fill,
+            label: 'Contacts',
+            icon: CupertinoIcons.person_2_alt,
             isSelected: (selectedIndex == 2),
             onTap: handleItemSelected,
           ),
           _NavigationBarItem(
             index: 3,
-            label: 'Contacts',
-            icon: CupertinoIcons.person_2_alt,
-            isSelected: (selectedIndex == 3),
-            onTap: handleItemSelected,
-          ),
-          _NavigationBarItem(
-            index: 4,
             label: 'Profile',
             icon: CupertinoIcons.profile_circled,
-            isSelected: (selectedIndex == 4),
+            isSelected: (selectedIndex == 3),
             onTap: handleItemSelected,
           ),
 
           _NavigationBarItem(
-            index: 5,
+            index: 4,
             label: '    SU     ',
             icon: MyCustomIcons.ussr,
-            isSelected: (selectedIndex == 5),
+            isSelected: (selectedIndex == 4),
             onTap: handleItemSelected,
           ),
         ],
       ),
     );
   }
-}
+} 
 
 class _NavigationBarItem extends StatelessWidget {
   const _NavigationBarItem(

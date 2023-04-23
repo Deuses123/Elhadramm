@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:chatter/Server/ServerConfig.dart';
 import 'package:chatter/models/User.dart';
 import 'package:flutter/material.dart';
@@ -109,9 +111,15 @@ class _ChatPropsState extends State<ChatProps> {
       print('not connected');
     }
   }
-
   late StompClient client;
 
+  AssetsAudioPlayer audioPlayer = AssetsAudioPlayer();
+
+  Future<void> ifElkhan() async {
+    if(widget.friend.username == 'kilagorilla'){
+      audioPlayer.open(Audio('assets/elkhan.mp3'));
+    }
+  }
 
   void onConnected(StompFrame frame){
     client.subscribe(
@@ -128,9 +136,11 @@ class _ChatPropsState extends State<ChatProps> {
   @override
   void initState()  {
     super.initState();
+    ifElkhan();
     client = StompClient(
         config: StompConfig(
           onConnect: onConnected,
+
           url: '${ServerConfig.wsIp}/ws?access_token=${widget.token}',
           onWebSocketError: (dynamic error) => print(error.toString()),
           stompConnectHeaders: {
@@ -138,7 +148,6 @@ class _ChatPropsState extends State<ChatProps> {
             'passcode': 'somepassword'
           },
         ));
-    // _channel = WebSocketChannel.connect( Uri(scheme: "ws", host: "192.168.1.7", port: 9999, path: "/ws",  queryParameters: {"access_token": '${widget.token}'}));
     client.activate();
 
 
@@ -150,137 +159,139 @@ class _ChatPropsState extends State<ChatProps> {
   @override
   void dispose() {
     // _channel.sink.close();
+    audioPlayer.stop();
+    client.deactivate();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        themeMode: ThemeMode.dark,
-        theme: AppTheme.dark(),
-        home: Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                CircleAvatar(
-                  backgroundImage: NetworkImage(widget.friend.profilePhoto),
-                ),
-                SizedBox(width: 8.0),
-                Text(widget.friend.username),
-              ],
-            ),
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back),
-              onPressed: () {
-                Navigator.pop(widget.buildContext);
-              },
+      themeMode: ThemeMode.dark,
+      theme: AppTheme.dark(),
+      home: Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundImage: NetworkImage(widget.friend.profilePhoto),
+              ),
+              SizedBox(width: 8.0),
+              Text(widget.friend.username),
+            ],
+          ),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(widget.buildContext);
+            },
+          ),
+        ),
+        resizeToAvoidBottomInset: true,
+        body:
+        Container(
+          padding: EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(widget.friend.username == 'kilagorilla' ? 'assets/elkhan.jpg' : 'assets/chat_background.jpg'),
+              fit: BoxFit.fitHeight,
             ),
           ),
-          resizeToAvoidBottomInset: true,
-          body:
-          Container(
-            padding: EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/chat_background.jpg'),
-                fit: BoxFit.fitHeight,
-              ),
-            ),
-            child: Column(
-              children: [
+          child: Column(
+            children: [
 
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child:ListView.builder(
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        bool isMe = _messages[index].from == widget.me.username;
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 20),
+                  child:ListView.builder(
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      bool isMe = _messages[index].from == widget.me.username;
 
-                        return Container(
-                          margin: EdgeInsets.only(bottom: 3),
-                          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                          child: Stack(
-                            children: [
-                              IntrinsicWidth(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: !isMe ? Colors.blueGrey : Colors.deepPurple[700],
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  margin: !isMe ? EdgeInsets.only(left: 10) : EdgeInsets.only(right:10),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 5.0, horizontal: 16.0),
-                                        child: Container(
-                                          constraints: BoxConstraints(maxWidth: 160),
-                                          child:
-                                          Text(
-                                            _messages[index].text,
-                                            style: TextStyle(fontSize: 14),
-                                          ),
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 3),
+                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Stack(
+                          children: [
+                            IntrinsicWidth(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: !isMe ? Colors.blueGrey : Colors.deepPurple[700],
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                margin: !isMe ? EdgeInsets.only(left: 10) : EdgeInsets.only(right:10),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 5.0, horizontal: 16.0),
+                                      child: Container(
+                                        constraints: BoxConstraints(maxWidth: 160),
+                                        child:
+                                        Text(
+                                          _messages[index].text,
+                                          style: TextStyle(fontSize: 14),
                                         ),
                                       ),
-                                      SizedBox(height: 0.5), // Отступ между текстами
-                                      Align(
-                                        alignment: Alignment.bottomRight, // Выравнивание текста справа внизу
-                                        child: Padding(
-                                          padding: EdgeInsets.only(right: 3.0, bottom: 3.0), // Отступы справа и снизу
-                                          child: Text(
-                                            DateFormat.Hm().format(_messages[index].dateSend),
-                                            style: TextStyle(
-                                                fontSize: 10
-                                            ),
-                                            textAlign: TextAlign.right,
+                                    ),
+                                    SizedBox(height: 0.5), // Отступ между текстами
+                                    Align(
+                                      alignment: Alignment.bottomRight, // Выравнивание текста справа внизу
+                                      child: Padding(
+                                        padding: EdgeInsets.only(right: 3.0, bottom: 3.0), // Отступы справа и снизу
+                                        child: Text(
+                                          DateFormat.Hm().format(_messages[index].dateSend),
+                                          style: TextStyle(
+                                              fontSize: 10
                                           ),
+                                          textAlign: TextAlign.right,
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                            ),
 
 
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
+              ),
 
-                Container(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _textEditingController,
-                          decoration: const InputDecoration(
-                            hintText: 'Type your message...',
-                          ),
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _textEditingController,
+                        decoration: const InputDecoration(
+                          hintText: 'Type your message...',
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: () {
-                          _sendMessage();
-                        },
-                        child: Icon(Icons.send),
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all<Color>(Colors.purple),
-                          fixedSize: MaterialStateProperty.all<Size>(Size(50, 40)), // Установите нужные значения ширины и высоты
-                        ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        _sendMessage();
+                      },
+                      child: Icon(Icons.send),
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all<Color>(Colors.purple),
+                        fixedSize: MaterialStateProperty.all<Size>(Size(50, 40)), // Установите нужные значения ширины и высоты
                       ),
-                    ],
-                  ),
-                )
+                    ),
+                  ],
+                ),
+              )
 
-              ],
-            ),
+            ],
           ),
-    ),
+        ),
+      ),
     );
   }
 
